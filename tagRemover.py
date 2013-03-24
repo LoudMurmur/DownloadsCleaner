@@ -11,7 +11,7 @@ from os import listdir
 from os.path import isfile, join
 import os
 
-download_folder = "F:\Nouveau dossier"
+download_folder = "F:\SabNzbD.complete"
 
 def get_all_files_from(my_path):
     file_list_without_path = [ f for f in listdir(my_path) if isfile(join(my_path,f)) ]
@@ -42,6 +42,8 @@ def get_all_files_from_folder_and_sub_folders(my_path):
 def compute_tag_length(file_without_path):
     tag_start = file_without_path.lower().find("[")
     if tag_start == -1:
+        return None
+    if tag_start != 0:
         return None
     else:
         tag_end = file_without_path.lower().find("]")
