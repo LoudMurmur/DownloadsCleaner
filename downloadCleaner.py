@@ -94,11 +94,14 @@ def delete_folder(folder_with_path):
     shutil.rmtree(folder_with_path)
 
 def delete_file(file_path):
-    """should not be used
+    """should not be used, too dangerous.
+    in case of algorythm error you could loose
+    a lot of stuff, move to a trash folder and check
+    yourself if it really needs to be deleted
     """
     pass
 
-def determine_if_bad_file(file_name_with_path):
+def bad_file(file_name_with_path):
     """Return true if file extension is in the list
     (true = file needs to be deleted)
     """
@@ -108,7 +111,7 @@ def determine_if_bad_file(file_name_with_path):
             return True
     return False
 
-def determine_if_is_in_good_folder(file_name_with_path):
+def is_in_good_folder(file_name_with_path):
     """Return true if the file is in a good folder
     if the file is not in a good folder it should be moved
     to the manual sorting area
@@ -154,7 +157,7 @@ def determine_tag(file_name_with_path):
     resolution = determine_resolution(file_name_with_path, quality)
     return ("["+resolution+"-"+quality+"]")
 
-def determine_if_file_is_already_tagged(file_name_with_path):
+def file_is_already_tagged(file_name_with_path):
     """Return True if file already contains a tag ([resolution-quality])"""
     file_name_without_path = os.path.split(file_name_with_path)[1]
     if file_name_without_path.find("[") == 0:
@@ -208,7 +211,7 @@ def ignore_folder_present_in_path(my_path):
 complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
 for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
-        if determine_if_bad_file(file_name_with_path):
+        if bad_file(file_name_with_path):
             print "Sending %s to bad file trash" %os.path.split(file_name_with_path)[1]
             move_to_badfile_trash(file_name_with_path)
 
@@ -216,7 +219,7 @@ for file_name_with_path in complete_file_list:
 complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
 for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
-        if not determine_if_is_in_good_folder(file_name_with_path):
+        if not is_in_good_folder(file_name_with_path):
             print "Sending %s to manual sorting area" %os.path.split(file_name_with_path)[1]
             move_to_need_manual_sorting(file_name_with_path)
 
@@ -227,10 +230,10 @@ for file_name_with_path in complete_file_list:
 complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
 for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
-        if not determine_if_file_is_already_tagged(file_name_with_path):
+        if not file_is_already_tagged(file_name_with_path):
             tag = determine_tag(file_name_with_path)
             file_name_splitted = os.path.split(file_name_with_path)
-            print "renaming %s to %s%s%s" %(file_name_with_path, file_name_splitted[0],tag, file_name_splitted[1])
+            print "renaming %s to %s" %(join(file_name_splitted[0], tag+file_name_splitted[1]))
             os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
         
 #5 Deleting unwanted resolution
