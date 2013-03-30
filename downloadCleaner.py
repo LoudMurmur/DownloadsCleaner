@@ -29,8 +29,10 @@ import shutil
 
 #global variables !
 
-bad_extensions = { ".exe", ".nfo", ".sfv", ".srr", ".par2", ".jpg", ".html",
-                  ".nzb", ".txt", ".1", ".rar", ".srs", ".sub", ".idx"}
+bad_extensions = { ".exe", ".nfo", ".sfv", ".srr", ".par2", ".jpg", ".html", ".url",
+                  ".nzb", ".txt", ".1", ".rar", ".srs", ".sub", ".idx", ".bat",
+                  ".deb", ".sh", ".7z", ".bz2", ".gz", ".r00", ".r01", ".r02", ".r03",
+                   ".r04", ".r05", ".r06", ".r07"}
 
 good_folders = {"Adventure Time With Finn and Jake", "American Horror Story", 
                 "Breaking Bad", "Community", "Continuum",  "Dexter", 
@@ -41,12 +43,17 @@ good_folders = {"Adventure Time With Finn and Jake", "American Horror Story",
                 "The Mentalist", "The Neighbors", "The Walking Dead", "True Blood"
                 }
 
+rejected = {" ita ", "xpt-", "epz-", "vostfr", "french", "spanish", "german", 
+            ".ita.", "ita-", "-tvp-", "-tvp", "tvp-", " tvp ", ".tvp.", " sof ",
+            "-sof", "-sof-", "sof-", ".sof."}
+
 #Must not be terminated by \ or /
 download_folder = "F:\SabNzbD.complete"
 
 bad_file_trash = os.path.join(download_folder, "AAA.BAD.FILES")
 wrong_folder_trash = os.path.join(download_folder, "AAA.WRONG.FOLDER")
 sample_trash = os.path.join(download_folder, "AAA.SAMPLES")
+rejected_trash = os.path.join(download_folder, "AAA.REJECTED")
 
 def get_all_files_from(my_path):
     file_list_without_path = [ f for f in listdir(my_path) if isfile(join(my_path,f)) ]
@@ -74,44 +81,18 @@ def get_all_files_from_folder_and_sub_folders(my_path):
         file_list.extend(return_list)
     return file_list
 
-def move_to_badfile_trash(file_name_with_path):
-    if not os.path.exists(bad_file_trash):
-        os.makedirs(bad_file_trash)
+def move_safely_to(destination, file_name_with_path):
+    if not os.path.exists(destination):
+        os.makedirs(destination)
     try:
-        shutil.move(file_name_with_path, bad_file_trash)
+        shutil.move(file_name_with_path, destination)
     except shutil.Error:
         i = 0
         file_name_without_path = os.path.split(file_name_with_path)[1]
-        while os.path.isfile(join(bad_file_trash, file_name_without_path+str(i))):
+        while os.path.isfile(join(destination, file_name_without_path+str(i))):
             i += 1
         os.rename(file_name_with_path, join(os.path.split(file_name_with_path)[0], os.path.split(file_name_with_path)[1]+str(i)))    
-        shutil.move(file_name_with_path+str(i), bad_file_trash)
-
-def move_to_sample_trash(file_name_with_path):
-    if not os.path.exists(sample_trash):
-        os.makedirs(sample_trash)
-    try:
-        shutil.move(file_name_with_path, sample_trash)
-    except shutil.Error:
-        i = 0
-        file_name_without_path = os.path.split(file_name_with_path)[1]
-        while os.path.isfile(join(sample_trash, file_name_without_path+str(i))):
-            i += 1
-        os.rename(file_name_with_path, join(os.path.split(file_name_with_path)[0], os.path.split(file_name_with_path)[1]+str(i)))    
-        shutil.move(file_name_with_path+str(i), sample_trash)
-
-def move_to_need_manual_sorting(file_name_with_path):
-    if not os.path.exists(wrong_folder_trash):
-        os.makedirs(wrong_folder_trash)
-    try:
-        shutil.move(file_name_with_path, wrong_folder_trash)
-    except shutil.Error:
-        i = 0
-        file_name_without_path = os.path.split(file_name_with_path)[1]
-        while os.path.isfile(join(wrong_folder_trash, file_name_without_path+str(i))):
-            i += 1
-        os.rename(file_name_with_path, join(os.path.split(file_name_with_path)[0], os.path.split(file_name_with_path)[1]+str(i)))    
-        shutil.move(file_name_with_path+str(i), wrong_folder_trash)
+        shutil.move(file_name_with_path+str(i), destination)
 
 def delete_folder(folder_with_path):
     print "ERASING : "+folder_with_path
@@ -169,6 +150,8 @@ def determine_quality(file_name_with_path):
         return "web"
     if file_without_path.lower().find("bdrip") != -1:
         return "bdrip"
+    if file_without_path.lower().find("bluray") != -1:
+        return "bluray"
     if file_without_path.lower().find("dvdrip") != -1:
         return "dvdrip"
     if file_without_path.lower().find("hdrip") != -1:
@@ -216,6 +199,19 @@ def ignore_folder_present_in_path(file_with_path):
         return True
     if my_path.lower().find(sample_trash.lower()) != -1:
         return True
+    if my_path.lower().find(rejected_trash.lower()) != -1:
+        return True
+    return False
+
+def is_rejected(file_with_path):
+    """Return true if filde contains any of the rejected string"""
+    spliteuh = os.path.split(file_with_path)
+    path = spliteuh[0]
+    file_name = spliteuh[1]
+    
+    for element in rejected:
+        if file_name.lower().find(element) != -1:
+            return True
     return False
 
 
@@ -241,7 +237,7 @@ for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
         if bad_file(file_name_with_path):
             print "Sending %s to bad file trash" %os.path.split(file_name_with_path)[1]
-            move_to_badfile_trash(file_name_with_path)
+            move_safely_to(bad_file_trash, file_name_with_path)
 
 #2 Moving file in bad folder to manual sorting location
 complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
@@ -249,7 +245,15 @@ for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
         if not is_in_good_folder(file_name_with_path):
             print "Sending %s to manual sorting area" %os.path.split(file_name_with_path)[1]
-            move_to_need_manual_sorting(file_name_with_path)
+            move_safely_to(wrong_folder_trash, file_name_with_path)
+
+#3 Moving rejected file to rejected location
+complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
+for file_name_with_path in complete_file_list:
+    if not ignore_folder_present_in_path(file_name_with_path):
+        if is_rejected(file_name_with_path):
+            print "Moving to rejected folder ! %s" %file_name_with_path
+            move_safely_to(rejected_trash, file_name_with_path)
 
 #3 Moving sample to sample location
     #needs to be done
@@ -262,16 +266,16 @@ for file_name_with_path in complete_file_list:
             tag = determine_tag(file_name_with_path)
             file_name_splitted = os.path.split(file_name_with_path)
             print "renaming %s to %s" %(file_name_splitted[1], tag+file_name_splitted[1])
-            os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
+            try:
+                os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
+            except Exception:
+                pass
         
 #5 Deleting unwanted resolution
     #needs to be done
     
 #6 Removing empty folders            
 remove_all_empty_folders(download_folder)
-
-#removing tvp and ita
-    #needs to be done
 
 print "Processing done"
             
