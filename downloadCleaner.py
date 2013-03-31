@@ -47,19 +47,36 @@ rejected = {" ita ", "xpt-", "epz-", "vostfr", "french", "spanish", "german",
             ".ita.", "ita-", "-tvp-", "-tvp", "tvp-", " tvp ", ".tvp.", " sof ",
             "-sof", "-sof-", "sof-", ".sof."}
 
+
+#delete#.480.720.except.web
+"""
+will delete all 480p resolution in the folder containing the file "delete.480p.720p.except.web"
+except 480p and 720p from web source
+the except xxx is optional, you can except many resolution by doing
+.except.XXX.YYY.EEE
+
+in short :
+
+#delete#.resolution1.resolution2.resolution3.except.quality1.quality2.quality3.etc)
+this is called a tagKey
+"""
+
 #Must not be terminated by \ or /
-download_folder = "F:\SabNzbD.complete"
+download_folder = "F:\SABNBTEST"
 
 bad_file_trash = os.path.join(download_folder, "AAA.BAD.FILES")
 wrong_folder_trash = os.path.join(download_folder, "AAA.WRONG.FOLDER")
 sample_trash = os.path.join(download_folder, "AAA.SAMPLES")
 rejected_trash = os.path.join(download_folder, "AAA.REJECTED")
+unwanted_trash = os.path.join(download_folder, "AAA.UNWANTED")
 
 def get_all_files_from(my_path):
+    """return all filename in a folder, without their path"""
     file_list_without_path = [ f for f in listdir(my_path) if isfile(join(my_path,f)) ]
     return file_list_without_path
     
 def get_all_folders_from(my_path):
+    """ return all folder in a folder without their path"""
     folder_list_without_path = [ f for f in listdir(my_path) if not isfile(join(my_path,f)) ]
     return folder_list_without_path
     
@@ -201,12 +218,13 @@ def ignore_folder_present_in_path(file_with_path):
         return True
     if my_path.lower().find(rejected_trash.lower()) != -1:
         return True
+    if my_path.lower().find(unwanted_trash.lower()) != -1:
+        return True
     return False
 
 def is_rejected(file_with_path):
     """Return true if filde contains any of the rejected string"""
     spliteuh = os.path.split(file_with_path)
-    path = spliteuh[0]
     file_name = spliteuh[1]
     
     for element in rejected:
@@ -214,7 +232,65 @@ def is_rejected(file_with_path):
             return True
     return False
 
+def must_be_deleted(file_name_with_path, tag_key):
+    """True if the file must be deleted, false if not"""
+    unwanted_resolutions_list = get_tag_key_unwanted_resolutions_list(tag_key)
+    quality_exception_list = get_tag_key_quality_exception_list(tag_key)
+    file_quality = determine_quality(file_name_with_path)
+    file_resolution = determine_resolution(file_name_with_path, file_quality)
+    
+    unwanted_resolution = False
+    for ur in unwanted_resolutions_list:
+        if ur == file_resolution:
+            unwanted_resolution = True
+    
+    unwanted_quality = True
+    if quality_exception_list is not False:
+        for wq in quality_exception_list:
+            if wq == file_quality:
+                unwanted_quality = False
 
+    if unwanted_resolution == True and unwanted_quality == True:
+        return True
+    return False
+        
+def get_tag_key(path_to_folder):
+    """ return the tagkey if their is one, return false if their is none"""
+    files_names = get_all_files_from(path_to_folder)
+    for possible_tag_key in files_names:
+        if possible_tag_key.lower().find("#delete#") == 0:
+            return possible_tag_key
+        return False
+
+def get_tag_key_unwanted_resolutions_list(tag_key):
+    """ Return a list of all unwanted resolution example : ["480p", "1080p"]"""
+    if tag_key.lower().find("except") != -1:
+        while tag_key.lower().find(".except") != -1:
+            tag_key = os.path.splitext(tag_key)[0]
+    unwanted_resolutions_list = []
+    while True:
+        unwanted_resolutions_list.append(os.path.splitext(tag_key)[1][1:])
+        tag_key = os.path.splitext(tag_key)[0]
+        if os.path.splitext(tag_key)[0] == "#delete#":
+            break
+    return unwanted_resolutions_list
+
+def get_tag_key_quality_exception_list(tag_key):
+    """ return a list of all quality exception list,
+    return False is their is no exceptions"""
+    quality_exception_list = []
+    if tag_key.lower().find("except") != -1:
+        while os.path.splitext(tag_key)[1] != ".except":
+            quality_exception_list.append(os.path.splitext(tag_key)[1][1:])
+            tag_key = os.path.splitext(tag_key)[0]
+        return quality_exception_list
+    else:
+        return False
+    
+def is_tag_key(file_name):
+    if file_name.lower().find("#delete#") != -1:
+        return True
+    return False
 
 
 
@@ -258,18 +334,30 @@ for file_name_with_path in complete_file_list:
 #3 Moving sample to sample location
     #needs to be done
     
+#3.5 moving unwanted resolution to unwanted folder
+complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
+for file_name_with_path in complete_file_list:
+    if not is_tag_key(file_name_with_path):
+        if not ignore_folder_present_in_path(file_name_with_path):
+            tag_key = get_tag_key(os.path.split(file_name_with_path)[0])
+            if tag_key != False:
+                if must_be_deleted(file_name_with_path, tag_key) is True:
+                    print "Moving to unwanted folder ! %s" %file_name_with_path
+                    move_safely_to(unwanted_trash, file_name_with_path)
+    
 #4 tagging files
 complete_file_list = get_all_files_from_folder_and_sub_folders(download_folder)
 for file_name_with_path in complete_file_list:
     if not ignore_folder_present_in_path(file_name_with_path):
         if not file_is_already_tagged(file_name_with_path):
-            tag = determine_tag(file_name_with_path)
-            file_name_splitted = os.path.split(file_name_with_path)
-            print "renaming %s to %s" %(file_name_splitted[1], tag+file_name_splitted[1])
-            try:
-                os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
-            except Exception:
-                pass
+            if not is_tag_key(file_name_with_path):
+                tag = determine_tag(file_name_with_path)
+                file_name_splitted = os.path.split(file_name_with_path)
+                print "renaming %s to %s" %(file_name_splitted[1], tag+file_name_splitted[1])
+                try:
+                    os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
+                except Exception:
+                    pass
         
 #5 Deleting unwanted resolution
     #needs to be done
@@ -279,3 +367,11 @@ remove_all_empty_folders(download_folder)
 
 print "Processing done"
             
+
+"""TODO
+getCompleFilesList()
+moveWhatNeedsToBeMoved()
+UpdateFileList()
+tagFiles()
+removeEmptyFolders()
+"""
