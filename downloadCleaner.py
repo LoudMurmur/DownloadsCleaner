@@ -62,7 +62,7 @@ this is called a tagKey
 """
 
 #Must not be terminated by \ or /
-download_folder = "F:\SABNBTEST"
+download_folder = "F:\SabNzbD.complete"
 
 bad_file_trash = os.path.join(download_folder, "AAA.BAD.FILES")
 wrong_folder_trash = os.path.join(download_folder, "AAA.WRONG.FOLDER")
@@ -271,7 +271,7 @@ def get_tag_key_unwanted_resolutions_list(tag_key):
     while True:
         unwanted_resolutions_list.append(os.path.splitext(tag_key)[1][1:])
         tag_key = os.path.splitext(tag_key)[0]
-        if os.path.splitext(tag_key)[0] == "#delete#":
+        if os.path.splitext(tag_key)[0] == "#delete#" and os.path.splitext(tag_key)[1] == '':
             break
     return unwanted_resolutions_list
 
