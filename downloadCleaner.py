@@ -29,6 +29,9 @@ import shutil
 
 #global variables !
 
+#set to True and the program will print everything he is doing
+DEBUG_MODE = False
+
 bad_extensions = { ".exe", ".nfo", ".sfv", ".srr", ".par2", ".jpg", ".html", ".url",
                   ".nzb", ".txt", ".1", ".rar", ".srs", ".sub", ".idx", ".bat",
                   ".deb", ".sh", ".7z", ".bz2", ".gz", ".r00", ".r01", ".r02", ".r03",
@@ -41,7 +44,7 @@ good_folders = {"Adventure Time With Finn and Jake", "American Horror Story",
                 "Person of Interest", "Sherlock", "Spartacus",
                 "Spartacus Blood and Sand", "Supernatural", "The Big Bang Theory",
                 "The Mentalist", "The Neighbors", "The Walking Dead", "True Blood",
-                "orphan black", "#ICONS"
+                "orphan black", "Doctor Who 2005"
                 }
 
 rejected = {" ita ", "xpt-", "epz-", "vostfr", "french", "spanish", "german", 
@@ -115,7 +118,7 @@ def move_safely_to(destination, file_name_with_path):
         shutil.move(file_name_with_path+str(i), destination)
 
 def delete_folder(folder_with_path):
-    print "ERASING : "+folder_with_path
+    debug_print("ERASING : "+folder_with_path)
     shutil.rmtree(folder_with_path)
 
 def delete_file(file_path):
@@ -141,9 +144,12 @@ def is_in_good_folder(file_name_with_path):
     if the file is not in a good folder it should be moved
     to the manual sorting area
     """
-   
     for gf in good_folders:
-        if os.path.split(file_name_with_path)[0].lower().find(gf.lower()) != -1:
+        #print "comparing : %s and %s" %(os.path.split(file_name_with_path)[0].lower(), gf.lower())
+        #print os.path.split(file_name_with_path)[0].lower().find(gf.lower())
+        #print "len(os.path.split(file_name_with_path)[0].lower()) = %s" %len(os.path.split(file_name_with_path)[0].lower())
+        #print "len(gf.lower())[0].lower()) = %s" %len(gf.lower())
+        if os.path.split(file_name_with_path)[0].lower().find("\\"+gf.lower()+"\\") != -1:
             return True
     return False
 
@@ -205,7 +211,6 @@ def is_folder_empty(folder_path):
     return False
 
 def remove_all_empty_folders(my_path):
-    print "step 6, removing all empty folders"
     folder_list = get_all_folders_from(my_path)
     for folder in folder_list:
         remove_all_empty_folders(join(my_path, folder))
@@ -300,6 +305,9 @@ def is_tag_key(file_name):
         return True
     return False
 
+def debug_print(data):
+    if DEBUG_MODE == True:
+        print data
 
 def remove_bad_file():
     print "step 1, sending bad file to %s" %os.path.split(bad_file_trash)[1]
@@ -307,7 +315,7 @@ def remove_bad_file():
     for file_name_with_path in complete_file_list:
         if not ignore_folder_present_in_path(file_name_with_path):
             if bad_file(file_name_with_path):
-                print "Sending %s to bad file trash" %os.path.split(file_name_with_path)[1]
+                debug_print("Sending %s to bad file trash" %os.path.split(file_name_with_path)[1])
                 move_safely_to(bad_file_trash, file_name_with_path)
 
 def locate_and_move_file_which_need_manual_sorting():
@@ -316,7 +324,7 @@ def locate_and_move_file_which_need_manual_sorting():
     for file_name_with_path in complete_file_list:
         if not ignore_folder_present_in_path(file_name_with_path):
             if not is_in_good_folder(file_name_with_path):
-                print "Sending %s to manual sorting area" %os.path.split(file_name_with_path)[1]
+                debug_print("Sending %s to manual sorting area" %os.path.split(file_name_with_path)[1])
                 move_safely_to(wrong_folder_trash, file_name_with_path) 
 
 def locate_and_move_foreign_file():
@@ -325,7 +333,7 @@ def locate_and_move_foreign_file():
     for file_name_with_path in complete_file_list:
         if not ignore_folder_present_in_path(file_name_with_path):
             if is_rejected(file_name_with_path):
-                print "Moving to rejected folder ! %s" %file_name_with_path
+                debug_print("Moving to rejected folder ! %s" %file_name_with_path)
                 move_safely_to(rejected_trash, file_name_with_path)
 
 def locate_and_move_unwanted_file():
@@ -337,7 +345,7 @@ def locate_and_move_unwanted_file():
                 tag_key = get_tag_key(os.path.split(file_name_with_path)[0])
                 if tag_key != False:
                     if must_be_deleted(file_name_with_path, tag_key) is True:
-                        print "Moving to unwanted folder ! %s" %file_name_with_path
+                        debug_print("Moving to unwanted folder ! %s" %file_name_with_path)
                         move_safely_to(unwanted_trash, file_name_with_path)
 
 def add_tag_to_files():
@@ -349,11 +357,11 @@ def add_tag_to_files():
                 if not is_tag_key(file_name_with_path):
                     tag = determine_tag(file_name_with_path)
                     file_name_splitted = os.path.split(file_name_with_path)
-                    print "renaming %s to %s" %(file_name_splitted[1], tag+file_name_splitted[1])
+                    debug_print("renaming %s to %s" %(file_name_splitted[1], tag+file_name_splitted[1]))
                     try:
                         os.rename(file_name_with_path, join(file_name_splitted[0], tag+file_name_splitted[1]))
                     except Exception:
-                        print "Plurality detected, moving to duplicate trash"
+                        debug_print("Plurality detected, moving to duplicate trash")
                         move_safely_to(duplicate_trash, file_name_with_path)
 
 
@@ -375,5 +383,6 @@ locate_and_move_foreign_file()
 #TODO Moving sample to sample location
 locate_and_move_unwanted_file()
 add_tag_to_files()
+print "step 6, removing all empty folders"
 remove_all_empty_folders(download_folder)
 print "Processing done"
